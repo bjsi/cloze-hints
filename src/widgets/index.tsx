@@ -1,43 +1,67 @@
 import { declareIndexPlugin, ReactRNPlugin, WidgetLocation } from '@remnote/plugin-sdk';
 import '../style.css';
 import '../App.css';
+import {clozeHintsPowerupCode, hintsSlotCode} from '../lib/constants';
+import {updateCSS} from '../lib/utils';
 
 async function onActivate(plugin: ReactRNPlugin) {
-  // Register settings
-  await plugin.settings.registerStringSetting({
-    id: 'name',
-    title: 'What is your Name?',
-    defaultValue: 'Bob',
-  });
 
-  await plugin.settings.registerBooleanSetting({
-    id: 'pizza',
-    title: 'Do you like pizza?',
-    defaultValue: true,
-  });
+  await plugin.app.registerPowerup(
+    "Cloze Hint",
+    clozeHintsPowerupCode,
+    "Add hints to clozes",
+    {
+      slots: [{
+        code: hintsSlotCode,
+        name: "Hints",
+      }],
+    }
+  );
 
-  await plugin.settings.registerNumberSetting({
-    id: 'favorite-number',
-    title: 'What is your favorite number?',
-    defaultValue: 42,
-  });
+  const loadAllHints = async () => {
+    const allHints: Record<string, string> = {}
+    const powerup = await plugin.powerup.getPowerupByCode(clozeHintsPowerupCode);
+    const taggedRem = (await powerup?.taggedRem()) || [];
+    await Promise.all(
+      taggedRem.map(async rem => {
+        const hintsAsStr = await rem.getPowerupProperty(clozeHintsPowerupCode, hintsSlotCode)
+        try {
+          const hints = JSON.parse(hintsAsStr) as Record<string, string>;
+          Object.entries(hints).forEach(([k, v]) => { allHints[k] = v })
+        }
+        catch(e) {
+        }
+      })
+    )
+    return allHints;
+  }
 
-  // A command that inserts text into the editor if focused.
+  const allHints = await loadAllHints();
+  await updateCSS(plugin, allHints);
+
+  await plugin.app.registerWidget(
+    "cloze_hint_input",
+    WidgetLocation.FloatingWidget,
+    {dimensions: {height: "auto", width: "250px"}},
+  )
+
   await plugin.app.registerCommand({
-    id: 'editor-command',
-    name: 'Editor Command',
+    id: `clozeWithHint`,
+    name: `Add a cloze with a hint`,
+    keyboardShortcut: "opt+z",
     action: async () => {
-      plugin.editor.insertPlainText('Hello World!');
+      const selRichText = await plugin.editor.getSelectedRichText();
+      const selPlainText = await plugin.richText.toString(selRichText);
+      if (!selPlainText) {
+        console.log("no selected text")
+        return;
+      }
+      const caretPos = await plugin.editor.getCurrentCaretDOMRect();
+      if (caretPos) {
+        await plugin.window.openFloatingWidget("cloze_hint_input", {top: caretPos.top + 25, left: caretPos.left})
+      }
     },
-  });
-
-  // Show a toast notification to the user.
-  await plugin.app.toast("I'm a toast!");
-
-  // Register a sidebar widget.
-  await plugin.app.registerWidget('sample_widget', WidgetLocation.RightSidebar, {
-    dimensions: { height: 'auto', width: '100%' },
-  });
+  })
 }
 
 async function onDeactivate(_: ReactRNPlugin) {}
