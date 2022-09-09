@@ -3,12 +3,13 @@
   "id": "cloze_hints",
   "name": "Cloze Hints",
   "author": "Jamesb",
-  "repoUrl": "",
+  "repoUrl": "https://github.com/bjsi/cloze-hints",
   "version": {
     "major": 0,
     "minor": 0,
     "patch": 1
   },
+  "enableOnMobile": false,
   "description": "Add hints to clozes",
   "requestNative": false,
   "requiredScopes": [

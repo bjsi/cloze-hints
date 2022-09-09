@@ -1,15 +1,15 @@
-import { renderWidget, usePlugin, useRunAsync } from "@remnote/plugin-sdk"
+import { renderWidget, usePlugin, useRunAsync, WidgetLocation } from "@remnote/plugin-sdk"
 import React from "react";
 import {isHotkey} from 'is-hotkey'
-import {clozeHintsPowerupCode, hintsSlotCode} from "../lib/constants";
-import {updateCSS} from "../lib/utils";
+import {clozeHintsPowerupCode, hintsSlotCode, InputProps, inputProps, } from "../lib/constants";
 
 function ClozeHintInput() {
   const plugin = usePlugin();
   const ref = React.useRef<HTMLInputElement | null>(null);
   const [hintText, setHintText] = React.useState("");
-  const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext(), []);
-  const floatingWidgetId = ctx?.floatingWidgetId;
+  const ctx = useRunAsync(async () => await plugin.widget.getWidgetContext<WidgetLocation.FloatingWidget>(), []);
+  const floatingWidgetId = ctx?.floatingWidgetId!;
+  // const props = useRunAsync(() => plugin.storage.getLocal<InputProps>(inputProps), [])
 
   React.useEffect(() => {
     if (floatingWidgetId) {
@@ -21,7 +21,7 @@ function ClozeHintInput() {
       }
       document.addEventListener("keydown", escFunction);
       return () => {
-      document.removeEventListener("keydown", escFunction);
+        document.removeEventListener("keydown", escFunction);
       }
     }
   }, [floatingWidgetId])
@@ -41,11 +41,9 @@ function ClozeHintInput() {
             const hint = hintText.trim();
             if (hint) {
               const clozeHintPowerup = await plugin.powerup.getPowerupByCode(clozeHintsPowerupCode)
-              const selRichText = await plugin.editor.getSelectedRichText();
-              const focusedRemId = await plugin.focus.getFocusedRemId();
-              const rem = await plugin.rem.findOne(focusedRemId);
+              const selRichText = (await plugin.editor.getSelectedText())?.richText || [];
+              const rem = await plugin.focus.getFocusedRem();
               if (!rem) {
-                console.log("Failed to get focused Rem");
                 return
               }
 
@@ -60,7 +58,6 @@ function ClozeHintInput() {
                 ...existingHints,
                 [clozeId]: hintText,
               }
-              await updateCSS(plugin, last => ({...last, ...hints}))
               await rem.setPowerupProperty(clozeHintsPowerupCode, hintsSlotCode, [JSON.stringify(hints)])
               const richTextWithCloze = selRichText.map((element) => {
                 if (typeof element === "string") {
