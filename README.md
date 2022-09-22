@@ -3,9 +3,9 @@
 - Add hints to clozes.
 - Hints are displayed in the fill-in-the-blank component in the queue.
 
-![](https://raw.githubusercontent.com/bjsi/cloze-hints/main/images/queue.png)
+![](https://raw.githubusercontent.com/bjsi/cloze-hints/main/images/queue.pngs)
 
-![](https://raw.githubusercontent.com/bjsi/cloze-hints/main/images/create-cloze.gif)
+![](https://raw.githubusercontent.com/bjsi/cloze-hints/main/images/create-hint.gif)
 
 ## How To Use
 
