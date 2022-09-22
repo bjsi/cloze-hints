@@ -1,8 +1,9 @@
 import { AppEvents, declareIndexPlugin, ReactRNPlugin, Rem, RichTextInterface, WidgetLocation } from '@remnote/plugin-sdk';
 import '../style.css';
 import '../App.css';
-import {clozeHintsPowerupCode, hintsSlotCode, hintsStorageKey, inputProps } from '../lib/constants';
+import {clozeHintsPowerupCode, hintsSlotCode, hintsStorageKey, clozePropsStorageKey as clozePropsStorageKey } from '../lib/constants';
 import * as Re from 'remeda';
+import {ClozeProps} from '../lib/types';
 
 async function onActivate(plugin: ReactRNPlugin) {
   await plugin.app.registerPowerup(
@@ -24,53 +25,45 @@ async function onActivate(plugin: ReactRNPlugin) {
     {dimensions: {height: "auto", width: "250px"}},
   )
 
-  // TODO: just have one command to add / edit cloze hint
-  await plugin.app.registerCommand({
-    id: `editClozeHint`,
-    name: `Edit Cloze Hint`,
-    action: async () => {
-      const sel = await plugin.editor.getSelectedText();
-      const pos = sel?.range.start
-      const rem = await plugin.focus.getFocusedRem();
-      if (!rem?.hasPowerup(clozeHintsPowerupCode)) {
-        return
-      }
+  const getClozeProps = async (): Promise<ClozeProps | undefined> => {
+    const sel = await plugin.editor.getSelectedText();
+    const pos = sel?.range.start
+    if (sel && sel.range.start === sel.range.end) {
+      // edit
       const text = await plugin.editor.getFocusedEditorText();
       if (!text || !pos ) {
         return;
       }
       const idx = await plugin.richText.indexOfElementAt(text, pos);
-      if (!text[idx].cId) {
+      const cId = text[idx].cId
+      if (!cId) {
         return;
       }
+      return { type: "edit", cId }
+    }
+    else if (sel && sel.range.start !== sel.range.end) {
+      return { type: "create" }
+    }
+    else {
+      return undefined
+    }
+  }
 
-      console.log(text[idx].cId)
-
-     // const caretPos = await plugin.editor.getCaretPosition();
-     //  if (caretPos) {
-     //    await plugin.storage.setLocal(inputProps, { editCid: text[idx].cId })
-     //    await plugin.window.openFloatingWidget("cloze_hint_input", {top: caretPos.top + 25, left: caretPos.left})
-     //  }
+  await plugin.app.registerCommand({
+    id: `clozeHint`,
+    name: `Cloze Hint`,
+    description: "Add a new cloze hint or edit the focused cloze hint",
+    keyboardShortcut: "mod+shift+h",
+    action: async () => {
+      const caretPos = await plugin.editor.getCaretPosition();
+      if (!caretPos) return;
+      const props = await getClozeProps() 
+      await plugin.storage.setSession(clozePropsStorageKey, props)
+      await plugin.window.openFloatingWidget("cloze_hint_input", {top: caretPos.top + 25, left: caretPos.left})
     }
   })
 
-  await plugin.app.registerCommand({
-    id: `clozeWithHint`,
-    name: `Cloze Hint`,
-    action: async () => {
-      const selRichText = (await plugin.editor.getSelectedText())?.richText || [];
-      const empty = await plugin.richText.empty(selRichText);
-      if (empty) {
-        return;
-      }
-      const caretPos = await plugin.editor.getCaretPosition();
-      if (caretPos) {
-        await plugin.window.openFloatingWidget("cloze_hint_input", {top: caretPos.top + 25, left: caretPos.left})
-      }
-    },
-  })
-
-  const getHints = async (rem: Rem): Promise<Record<string, string>> => {
+  const getHintsFromRem = async (rem: Rem): Promise<Record<string, string>> => {
     const hintsAsStr = await rem.getPowerupProperty(clozeHintsPowerupCode, hintsSlotCode)
     try {
       return JSON.parse(hintsAsStr) as Record<string, string>;
@@ -83,7 +76,7 @@ async function onActivate(plugin: ReactRNPlugin) {
   const loadAllHints = async (): Promise<void> => {
     const powerup = await plugin.powerup.getPowerupByCode(clozeHintsPowerupCode);
     const taggedRem = (await powerup?.taggedRem()) || [];
-    const allHints = (await Promise.all(taggedRem.map(getHints))).reduce((acc, x) => Re.merge(acc, x), {})
+    const allHints = (await Promise.all(taggedRem.map(getHintsFromRem))).reduce((acc, x) => Re.merge(acc, x), {})
     await plugin.storage.setLocal(hintsStorageKey, allHints);
   }
 
@@ -100,16 +93,26 @@ async function onActivate(plugin: ReactRNPlugin) {
     await plugin.app.registerCSS("powerup", css);
   }
 
-  const registerMainCSS = async () => {
+  const registerMainAppCSS = async () => {
     const allHints = (await plugin.storage.getLocal<Record<string, string>>(hintsStorageKey)) || {}
     let css = ''
-    Object.entries(allHints).map(([key, value]) => {
+    Object.entries(allHints).filter(([_, value]) => !!value).map(([key, value]) => {
       css += `.cloze-id-${key}::after {
         content: " (${value})";
         opacity: 0.5;
       }\n`
     })
     await plugin.app.registerCSS("powerup", css);
+  }
+
+  const registerInitialCSS = async () => {
+    const url = await plugin.window.getURL();
+    if (url.startsWith('/flashcards')) {
+      await registerQueueCSS();
+    }
+    else {
+      registerMainAppCSS();
+    }
   }
 
   plugin.event.addListener(
@@ -122,19 +125,13 @@ async function onActivate(plugin: ReactRNPlugin) {
         return;
       }
       const allHints = await plugin.storage.getLocal<Record<string, string>>(hintsStorageKey);
-      const remHints = await getHints(rem);
+      const remHints = await getHintsFromRem(rem);
       const newAllHints = Re.merge(allHints, remHints);
       await plugin.storage.setLocal(hintsStorageKey, newAllHints);
-      await registerMainCSS();
+      await registerInitialCSS()
   })
 
-  const url = await plugin.window.getURL();
-  if (url.startsWith('/flashcards')) {
-    await registerQueueCSS();
-  }
-  else {
-    registerMainCSS();
-  }
+  await registerInitialCSS()
 
   let lastURL: string | undefined;
   plugin.event.addListener(AppEvents.URLChange, undefined, async ({pathname}) => {
@@ -142,7 +139,7 @@ async function onActivate(plugin: ReactRNPlugin) {
       registerQueueCSS();
     }
     else if (lastURL?.startsWith('/flashcards')) {
-      registerMainCSS();
+      registerMainAppCSS();
     }
     lastURL = pathname
   })
