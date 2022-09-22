@@ -3,6 +3,10 @@
 - Add hints to clozes.
 - Hints are displayed in the fill-in-the-blank component in the queue.
 
+![](https://raw.githubusercontent.com/bjsi/cloze-hints/main/images/queue.png)
+
+![](https://raw.githubusercontent.com/bjsi/cloze-hints/main/images/create-cloze.gif)
+
 ## How To Use
 
 - To create a new cloze with a hint, highlight the range of text you want to turn into a cloze and use the 'Cloze Hint' command, or use the shortcut `ctrl/cmd+shift+h`.
