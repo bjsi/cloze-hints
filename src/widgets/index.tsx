@@ -135,10 +135,10 @@ async function onActivate(plugin: ReactRNPlugin) {
 
   let lastURL: string | undefined;
   plugin.event.addListener(AppEvents.URLChange, undefined, async ({pathname}) => {
-    if ((pathname as string).startsWith('/flashcards')) {
+    if ((pathname as string).includes('/flashcards')) {
       registerQueueCSS();
     }
-    else if (lastURL?.startsWith('/flashcards')) {
+    else if (lastURL?.includes('/flashcards')) {
       registerMainAppCSS();
     }
     lastURL = pathname
