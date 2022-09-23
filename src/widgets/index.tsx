@@ -53,7 +53,7 @@ async function onActivate(plugin: ReactRNPlugin) {
     id: `clozeHint`,
     name: `Cloze Hint`,
     description: "Add a new cloze hint or edit the focused cloze hint",
-    keyboardShortcut: "mod+shift+h",
+    keyboardShortcut: "mod+shift+:",
     action: async () => {
       const caretPos = await plugin.editor.getCaretPosition();
       if (!caretPos) return;
