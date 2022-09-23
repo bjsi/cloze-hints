@@ -13,6 +13,9 @@
 
 ![](https://raw.githubusercontent.com/bjsi/cloze-hints/main/images/queue.pngs)
 
+- Removing/Editing a cloze hint (NOTE: just click inside the cloze, don't highlight text):
+
+![](https://raw.githubusercontent.com/bjsi/cloze-hints/main/images/remove-cloze.gif)
 
 ## How To Use
 
