@@ -89,6 +89,9 @@ const config = {
     new CopyPlugin({
       patterns: [{ from: 'public', to: '' }],
     }),
+    new CopyPlugin({
+      patterns: [{ from: 'README.md', to: '' }],
+    }),
     fastRefresh,
   ].filter(Boolean),
 };

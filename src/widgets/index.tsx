@@ -107,7 +107,7 @@ async function onActivate(plugin: ReactRNPlugin) {
 
   const registerInitialCSS = async () => {
     const url = await plugin.window.getURL();
-    if (url.startsWith('/flashcards')) {
+    if (url.includes('/flashcards')) {
       await registerQueueCSS();
     }
     else {
