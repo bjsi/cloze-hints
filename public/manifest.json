@@ -1,16 +1,16 @@
 {
   "manifestVersion": 1,
   "id": "cloze_hints",
-  "name": "Cloze Hints",
+  "name": "Cloze Hints (deprecated)",
   "author": "Jamesb",
   "repoUrl": "https://github.com/bjsi/cloze-hints",
   "version": {
     "major": 0,
     "minor": 0,
-    "patch": 8
+    "patch": 10
   },
   "enableOnMobile": true,
-  "description": "Add hints to clozes",
+  "description": "Add hints to clozes (deprecated: this is now a built-in feature)",
   "requestNative": false,
   "requiredScopes": [
     {

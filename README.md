@@ -1,3 +1,5 @@
+This plugin is deprecated. Cloze hints are now a built-in feature in RemNote.
+
 ## Features
 
 - Add hints to clozes.
